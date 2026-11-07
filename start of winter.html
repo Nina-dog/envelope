@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>冬至来信</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #ffe7cc 0%, #ffd2a8 50%, #f7bfa8 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        font-family: "KaiTi", "SimSun", "STKaiti", serif;
+    }
+
+    /* 飘落画布 */
+    #falling {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    /* 信封容器 */
+    .envelope-box {
+        position: absolute;
+        cursor: pointer;
+        z-index: 3;
+        perspective: 1200px;
+    }
+
+    /* 信封主体 */
+    .envelope {
+        width: 340px;
+        height: 210px;
+        background: #fff7ec;
+        position: relative;
+        border-radius: 6px;
+        box-shadow: 0 10px 24px rgba(180, 120, 70, 0.18);
+        overflow: visible;
+    }
+
+    /* 信封封舌（三角形盖子） */
+    .envelope-flap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 110px;
+        background: linear-gradient(180deg, #fffaf2 0%, #fbe7cf 100%);
+        clip-path: polygon(0 0, 50% 100%, 100% 0);
+        transform-origin: top center;
+        transition: transform 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        transform-style: preserve-3d;
+        z-index: 10;
+    }
+
+    .envelope-flap.open {
+        transform: rotateX(-110deg);
+    }
+
+    /* 底部提示文字 */
+    .envelope::after {
+        content: "点击开启冬至来信";
+        position: absolute;
+        bottom: 18px;
+        width: 100%;
+        text-align: center;
+        color: #b5835a;
+        font-size: 14px;
+        letter-spacing: 2px;
+        z-index: 3;
+    }
+
+    /* 信封装饰线 */
+    .envelope .envelope-line {
+        position: absolute;
+        left: 20px;
+        right: 20px;
+        bottom: 50px;
+        height: 1px;
+        background: repeating-linear-gradient(90deg, #d9bf9f 0 10px, transparent 10px 18px);
+        z-index: 1;
+    }
+
+    /* 信封淡出 */
+    .envelope-box.fade-out {
+        opacity: 0;
+        transform: scale(0.85);
+        pointer-events: none;
+        transition: opacity 1s ease, transform 1s ease;
+    }
+
+    /* 信纸 */
+    .letter {
+        width: 170px;
+        height: 90px;
+        background: #fffdf5;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+        border-radius: 4px;
+        transition: transform 1.8s ease-in-out, width 1.4s ease, height 1.4s ease, box-shadow 1.4s ease;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .letter-text {
+        font-size: 22px;
+        line-height: 42px;
+        color: #4a3520;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+        white-space: pre-wrap;
+        text-align: center;
+        padding: 30px;
+    }
+</style>
+</head>
+<body>
+<canvas id="falling"></canvas>
+
+<div class="envelope-box" id="envelopeWrap">
+    <div class="envelope">
+        <div class="envelope-flap" id="flap">
+        </div>
+        <div class="envelope-line"></div>
+    </div>
+</div>
+
+<div class="letter" id="letter">
+    <div class="letter-text" id="textBox"></div>
+</div>
+
+<script>
+    const envelopeWrap = document.getElementById('envelopeWrap');
+    const flap = document.getElementById('flap');
+    const letter = document.getElementById('letter');
+    const textBox = document.getElementById('textBox');
+
+    const letterContent = `致亲爱的朋友：
+
+冬至已至，昼短夜长。
+愿你三餐温暖，岁岁安康。
+
+寒来添暖意，
+日子有微光。
+愿有人陪你围炉，
+有热汤暖你心房。
+
+愿所有寒凉皆散去，
+美好如期而至。
+
+冬至快乐❄️`;
+
+    let isOpened = false;
+    let fallingStarted = false;
+
+    envelopeWrap.addEventListener('click', async () => {
+        if (isOpened) return;
+        isOpened = true;
+
+        textBox.innerText = "";
+        textBox.style.opacity = "0";
+        flap.classList.add('open');
+        await sleep(1200);
+
+        letter.style.transform = "translate(-50%, calc(-50% - 240px))";
+        await sleep(1800);
+
+        const viewH = window.innerHeight;
+        const finalH = viewH * 0.88;
+        const finalW = finalH / 1.414;
+        letter.style.width = finalW + "px";
+        letter.style.height = finalH + "px";
+        letter.style.transform = "translate(-50%, -50%)";
+
+        await sleep(500);
+        envelopeWrap.classList.add('fade-out');
+        await sleep(900);
+        textBox.style.opacity = "1";
+
+        if (!fallingStarted) {
+            fallingStarted = true;
+            startFalling();
+        }
+        await typeWrite(letterContent, textBox);
+    });
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function typeWrite(str, dom) {
+        dom.innerText = "";
+        for(let i = 0; i < str.length; i++) {
+            dom.innerText += str[i];
+            await sleep(70);
+        }
+    }
+
+    function startFalling() {
+        const canvas = document.getElementById('falling');
+        const ctx = canvas.getContext('2d');
+        let w = canvas.width = window.innerWidth;
+        let h = canvas.height = window.innerHeight;
+        window.addEventListener('resize', ()=>{
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+        })
+        const items = [];
+        class Item {
+            constructor(){
+                this.reset(true);
+            }
+            reset(init=false){
+                this.x = Math.random()*w;
+                this.y = init ? Math.random()*h : -10;
+                this.size = Math.random()*8 +4;
+                this.speedY = Math.random()*0.8 +0.3;
+                this.swing = Math.random()*0.02 +0.005;
+                this.angle = Math.random()*Math.PI*2;
+                this.type = Math.random()>0.5 ? 'snow' : 'leaf';
+                this.color = this.type==='leaf' ? ['#ffd570','#f29b38','#e07730'][Math.floor(Math.random()*3)] : 'rgba(255,255,255,0.85)';
+            }
+            update(){
+                this.y += this.speedY;
+                this.angle += this.swing;
+                this.x += Math.sin(this.angle)*0.6;
+                if(this.y>h+10) this.reset();
+            }
+            draw(){
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if(this.type==='snow'){
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 1.5;
+                    for(let i=0;i<6;i++){
+                        ctx.beginPath();
+                        ctx.moveTo(0,-this.size);
+                        ctx.lineTo(0,this.size);
+                        ctx.rotate(Math.PI/3);
+                        ctx.stroke();
+                    }
+                }else{
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.ellipse(0,0,this.size, this.size*0.45, 0,0,Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+        for(let i=0;i<40;i++) items.push(new Item());
+        function animate(){
+            ctx.clearRect(0,0,w,h);
+            items.forEach(it=>{
+                it.update();
+                it.draw();
+            })
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+</script>
+</body>
+</html>
